@@ -52,7 +52,7 @@ interface Game {
   name: string;
   slug: string;
   platform: string;
-  icon: string;
+  icon: string; // URL/path to image
   productCount: number;
 }
 
@@ -66,6 +66,7 @@ interface Product {
   sales: number;
   description?: string;
   badge?: string;
+  image?: string; // URL/path to product image
 }
 
 interface Order {
@@ -116,6 +117,12 @@ export default function AdminPage() {
   const [gameDialogOpen, setGameDialogOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isEditingGame, setIsEditingGame] = useState(false);
+  const [gameIconFile, setGameIconFile] = useState<File | null>(null);
+  const [gameIconPreview, setGameIconPreview] = useState<string>('');
+  
+  // Product Management States - Add image states
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string>('');
   
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -197,19 +204,19 @@ export default function AdminPage() {
       ]);
 
       setGames([
-        { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '🎮', productCount: 12 },
-        { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '🔫', productCount: 8 },
-        { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '🎯', productCount: 10 },
-        { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '⚔️', productCount: 7 },
-        { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '💣', productCount: 8 },
+        { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '/games/fortnite.png', productCount: 12 },
+        { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '/games/valorant.png', productCount: 8 },
+        { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '/games/pubg.png', productCount: 10 },
+        { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '/games/apex.png', productCount: 7 },
+        { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '/games/warzone.png', productCount: 8 },
       ]);
 
       setProducts([
-        { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245 },
-        { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189 },
-        { id: '3', name: 'PUBG Recoil', game: 'PUBG', price: 24.99, status: 'OUT_OF_STOCK', sales: 156 },
-        { id: '4', name: 'Apex Legends Radar', game: 'Apex', price: 34.99, status: 'AVAILABLE', sales: 203 },
-        { id: '5', name: 'Warzone ESP', game: 'Warzone', price: 44.99, status: 'COMING_SOON', sales: 0 },
+        { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245, image: '/products/fortnite-esp.png' },
+        { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189, image: '/products/valorant-aimbot.png' },
+        { id: '3', name: 'PUBG Recoil', game: 'PUBG', price: 24.99, status: 'OUT_OF_STOCK', sales: 156, image: '/products/pubg-recoil.png' },
+        { id: '4', name: 'Apex Legends Radar', game: 'Apex', price: 34.99, status: 'AVAILABLE', sales: 203, image: '/products/apex-radar.png' },
+        { id: '5', name: 'Warzone ESP', game: 'Warzone', price: 44.99, status: 'COMING_SOON', sales: 0, image: '/products/warzone-esp.png' },
       ]);
 
       setOrders([
@@ -284,24 +291,46 @@ export default function AdminPage() {
       sales: 0,
       description: '',
       badge: '',
+      image: '',
     });
     setIsEditingProduct(false);
+    setProductImageFile(null);
+    setProductImagePreview('');
     setProductDialogOpen(true);
   };
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setIsEditingProduct(true);
+    setProductImageFile(null);
+    setProductImagePreview(product.image || '');
     setProductDialogOpen(true);
+  };
+
+  const handleProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProductImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveProduct = () => {
     if (selectedProduct) {
+      const productToSave = {
+        ...selectedProduct,
+        image: productImagePreview || selectedProduct.image || '',
+      };
+      
       if (isEditingProduct) {
-        setProducts(products.map(p => p.id === selectedProduct.id ? selectedProduct : p));
+        setProducts(products.map(p => p.id === productToSave.id ? productToSave : p));
       } else {
         const newProduct = {
-          ...selectedProduct,
+          ...productToSave,
           id: Date.now().toString(),
           sales: 0,
         };
@@ -310,6 +339,8 @@ export default function AdminPage() {
       }
       setProductDialogOpen(false);
       setSelectedProduct(null);
+      setProductImageFile(null);
+      setProductImagePreview('');
     }
   };
 
@@ -327,34 +358,57 @@ export default function AdminPage() {
       name: '',
       slug: '',
       platform: 'Desktop',
-      icon: '🎮',
+      icon: '',
       productCount: 0,
     });
     setIsEditingGame(false);
+    setGameIconFile(null);
+    setGameIconPreview('');
     setGameDialogOpen(true);
   };
 
   const handleEditGame = (game: Game) => {
     setSelectedGame(game);
     setIsEditingGame(true);
+    setGameIconFile(null);
+    setGameIconPreview(game.icon || '');
     setGameDialogOpen(true);
+  };
+
+  const handleGameIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setGameIconFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGameIconPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveGame = () => {
     if (selectedGame) {
+      const gameToSave = {
+        ...selectedGame,
+        icon: gameIconPreview || selectedGame.icon || '',
+      };
+      
       if (isEditingGame) {
-        setGames(games.map(g => g.id === selectedGame.id ? selectedGame : g));
+        setGames(games.map(g => g.id === gameToSave.id ? gameToSave : g));
       } else {
         const newGame = {
-          ...selectedGame,
+          ...gameToSave,
           id: Date.now().toString(),
-          slug: selectedGame.name.toLowerCase().replace(/\s+/g, '-'),
+          slug: gameToSave.name.toLowerCase().replace(/\s+/g, '-'),
           productCount: 0,
         };
         setGames([...games, newGame]);
       }
       setGameDialogOpen(false);
       setSelectedGame(null);
+      setGameIconFile(null);
+      setGameIconPreview('');
     }
   };
 
@@ -783,7 +837,16 @@ export default function AdminPage() {
                           <TableRow key={game.id} className="border-slate-600/30 hover:bg-slate-700/30">
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                <span className="text-2xl">{game.icon}</span>
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-600 bg-slate-800 flex items-center justify-center">
+                                  <img 
+                                    src={game.icon} 
+                                    alt={game.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=No+Image';
+                                    }}
+                                  />
+                                </div>
                                 <span className="font-medium text-white">{game.name}</span>
                               </div>
                             </TableCell>
@@ -860,7 +923,23 @@ export default function AdminPage() {
                       <TableBody>
                         {filteredProducts.map((product) => (
                           <TableRow key={product.id} className="border-slate-600/30 hover:bg-slate-700/30">
-                            <TableCell className="font-medium text-white">{product.name}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {product.image && (
+                                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-600 bg-slate-800 flex items-center justify-center">
+                                    <img 
+                                      src={product.image} 
+                                      alt={product.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48?text=No+Image';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                <span className="font-medium text-white">{product.name}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="text-white">{product.game}</TableCell>
                             <TableCell className="text-emerald-400 font-semibold">${product.price}</TableCell>
                             <TableCell>
@@ -1129,12 +1208,38 @@ export default function AdminPage() {
                     <SelectContent className="bg-slate-900 border-slate-700">
                       {games.map((game) => (
                         <SelectItem key={game.id} value={game.name}>
-                          {game.icon} {game.name}
+                          <div className="flex items-center gap-2">
+                            <img src={game.icon} alt={game.name} className="w-5 h-5 object-cover rounded" />
+                            {game.name}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="product-image">Product Image</Label>
+                <Input
+                  id="product-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProductImageChange}
+                  className="bg-slate-800 border-slate-700"
+                />
+                {(productImagePreview || selectedProduct.image) && (
+                  <div className="mt-2 flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center">
+                      <img 
+                        src={productImagePreview || selectedProduct.image} 
+                        alt="Product preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="text-sm text-slate-400">Image preview</p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1233,15 +1338,26 @@ export default function AdminPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="game-icon">Icon (Emoji) *</Label>
+                <Label htmlFor="game-icon">Game Icon (Image) *</Label>
                 <Input
                   id="game-icon"
-                  value={selectedGame.icon}
-                  onChange={(e) => setSelectedGame({ ...selectedGame, icon: e.target.value })}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleGameIconChange}
                   className="bg-slate-800 border-slate-700"
-                  placeholder="🎮"
-                  maxLength={2}
                 />
+                {(gameIconPreview || selectedGame.icon) && (
+                  <div className="mt-2 flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center">
+                      <img 
+                        src={gameIconPreview || selectedGame.icon} 
+                        alt="Game icon preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="text-sm text-slate-400">Image preview</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1276,12 +1392,6 @@ export default function AdminPage() {
             </Button>
             <Button onClick={handleSaveGame} className="bg-emerald-500 hover:bg-emerald-600">
               {isEditingGame ? 'Update Game' : 'Add Game'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-            <Button onClick={handleSaveUser} className="bg-emerald-500 hover:bg-emerald-600">
-              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
