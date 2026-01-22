@@ -140,30 +140,51 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
-  // Load data from localStorage on mount
+  // Fetch games and products from API
+  const fetchGames = async () => {
+    try {
+      const response = await fetch('/api/games');
+      const data = await response.json();
+      if (data.games) {
+        setGames(data.games);
+      }
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      const data = await response.json();
+      if (data.products) {
+        // Map products to match admin interface
+        const mappedProducts = data.products.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          game: p.game?.name || '',
+          gameId: p.gameId,
+          price: p.price,
+          status: p.status,
+          sales: 0, // TODO: Calculate from orders
+          description: p.description,
+          badge: p.badge,
+          image: p.image,
+        }));
+        setProducts(mappedProducts);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  // Load data on mount
   useEffect(() => {
-    // Load saved data from localStorage
-    const savedGames = localStorage.getItem('adminGames');
-    const savedProducts = localStorage.getItem('adminProducts');
-    
-    if (savedGames) {
-      try {
-        setGames(JSON.parse(savedGames));
-      } catch (e) {
-        console.error('Error loading games from localStorage:', e);
-      }
-    }
-    
-    if (savedProducts) {
-      try {
-        setProducts(JSON.parse(savedProducts));
-      } catch (e) {
-        console.error('Error loading products from localStorage:', e);
-      }
-    }
+    fetchGames();
+    fetchProducts();
   }, []);
 
-  // Initialize with dummy data only if localStorage is empty
+  // Initialize with dummy data for other sections
   useEffect(() => {
     // Simulate API call
     setTimeout(() => {
@@ -226,31 +247,7 @@ export default function AdminPage() {
         },
       ]);
 
-      // Only set games if localStorage is empty
-      if (!localStorage.getItem('adminGames')) {
-        const defaultGames = [
-          { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '/games/fortnite.png', productCount: 12 },
-          { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '/games/valorant.png', productCount: 8 },
-          { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '/games/pubg.png', productCount: 10 },
-          { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '/games/apex.png', productCount: 7 },
-          { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '/games/warzone.png', productCount: 8 },
-        ];
-        setGames(defaultGames);
-        localStorage.setItem('adminGames', JSON.stringify(defaultGames));
-      }
-
-      // Only set products if localStorage is empty
-      if (!localStorage.getItem('adminProducts')) {
-        const defaultProducts = [
-          { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245, image: '/products/fortnite-esp.png' },
-          { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189, image: '/products/valorant-aimbot.png' },
-          { id: '3', name: 'PUBG Recoil', game: 'PUBG', price: 24.99, status: 'OUT_OF_STOCK', sales: 156, image: '/products/pubg-recoil.png' },
-          { id: '4', name: 'Apex Legends Radar', game: 'Apex', price: 34.99, status: 'AVAILABLE', sales: 203, image: '/products/apex-radar.png' },
-          { id: '5', name: 'Warzone ESP', game: 'Warzone', price: 44.99, status: 'COMING_SOON', sales: 0, image: '/products/warzone-esp.png' },
-        ];
-        setProducts(defaultProducts);
-        localStorage.setItem('adminProducts', JSON.stringify(defaultProducts));
-      }
+      // Games and products are now fetched from API
 
       setOrders([
         { id: '1', orderNumber: 'ORD-2024-001', user: 'john@example.com', amount: 29.99, status: 'COMPLETED', date: '2024-01-22' },
@@ -352,42 +349,80 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (selectedProduct) {
       const productToSave = {
         ...selectedProduct,
         image: productImagePreview || selectedProduct.image || '',
       };
       
-      let updatedProducts;
-      if (isEditingProduct) {
-        updatedProducts = products.map(p => p.id === productToSave.id ? productToSave : p);
-      } else {
-        const newProduct = {
-          ...productToSave,
-          id: Date.now().toString(),
-          sales: 0,
-        };
-        updatedProducts = [...products, newProduct];
-        setStats(prev => ({ ...prev, totalProducts: prev.totalProducts + 1 }));
+      try {
+        if (isEditingProduct) {
+          // Update existing product
+          const response = await fetch('/api/products', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productToSave),
+          });
+          
+          if (!response.ok) throw new Error('Failed to update product');
+        } else {
+          // Create new product - need to find gameId from game name
+          const game = games.find(g => g.name === productToSave.game);
+          if (!game) {
+            alert('Please select a valid game');
+            return;
+          }
+          
+          const newProduct = {
+            ...productToSave,
+            gameId: game.id,
+          };
+          
+          const response = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newProduct),
+          });
+          
+          if (!response.ok) throw new Error('Failed to create product');
+          
+          setStats(prev => ({ ...prev, totalProducts: prev.totalProducts + 1 }));
+        }
+        
+        // Refresh products list
+        await fetchProducts();
+        await fetchGames(); // Update product counts
+        
+        setProductDialogOpen(false);
+        setSelectedProduct(null);
+        setProductImageFile(null);
+        setProductImagePreview('');
+      } catch (error) {
+        console.error('Error saving product:', error);
+        alert('Failed to save product');
       }
-      
-      setProducts(updatedProducts);
-      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-      
-      setProductDialogOpen(false);
-      setSelectedProduct(null);
-      setProductImageFile(null);
-      setProductImagePreview('');
     }
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      const updatedProducts = products.filter((p) => p.id !== productId);
-      setProducts(updatedProducts);
-      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
-      setStats(prev => ({ ...prev, totalProducts: prev.totalProducts - 1 }));
+      try {
+        const response = await fetch(`/api/products?id=${productId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete product');
+        
+        setStats(prev => ({ ...prev, totalProducts: prev.totalProducts - 1 }));
+        
+        // Refresh products list
+        await fetchProducts();
+        await fetchGames(); // Update product counts
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        alert('Failed to delete product');
+      }
     }
   };
 
@@ -427,41 +462,68 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveGame = () => {
+  const handleSaveGame = async () => {
     if (selectedGame) {
       const gameToSave = {
         ...selectedGame,
         icon: gameIconPreview || selectedGame.icon || '',
       };
       
-      let updatedGames;
-      if (isEditingGame) {
-        updatedGames = games.map(g => g.id === gameToSave.id ? gameToSave : g);
-      } else {
-        const newGame = {
-          ...gameToSave,
-          id: Date.now().toString(),
-          slug: gameToSave.name.toLowerCase().replace(/\s+/g, '-'),
-          productCount: 0,
-        };
-        updatedGames = [...games, newGame];
+      try {
+        if (isEditingGame) {
+          // Update existing game
+          const response = await fetch('/api/games', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gameToSave),
+          });
+          
+          if (!response.ok) throw new Error('Failed to update game');
+        } else {
+          // Create new game
+          const newGame = {
+            ...gameToSave,
+            slug: gameToSave.name.toLowerCase().replace(/\s+/g, '-'),
+          };
+          
+          const response = await fetch('/api/games', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newGame),
+          });
+          
+          if (!response.ok) throw new Error('Failed to create game');
+        }
+        
+        // Refresh games list
+        await fetchGames();
+        
+        setGameDialogOpen(false);
+        setSelectedGame(null);
+        setGameIconFile(null);
+        setGameIconPreview('');
+      } catch (error) {
+        console.error('Error saving game:', error);
+        alert('Failed to save game');
       }
-      
-      setGames(updatedGames);
-      localStorage.setItem('adminGames', JSON.stringify(updatedGames));
-      
-      setGameDialogOpen(false);
-      setSelectedGame(null);
-      setGameIconFile(null);
-      setGameIconPreview('');
     }
   };
 
-  const handleDeleteGame = (gameId: string) => {
+  const handleDeleteGame = async (gameId: string) => {
     if (window.confirm('Are you sure you want to delete this game? All related products will be affected.')) {
-      const updatedGames = games.filter((g) => g.id !== gameId);
-      setGames(updatedGames);
-      localStorage.setItem('adminGames', JSON.stringify(updatedGames));
+      try {
+        const response = await fetch(`/api/games?id=${gameId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete game');
+        
+        // Refresh games list
+        await fetchGames();
+      } catch (error) {
+        console.error('Error deleting game:', error);
+        alert('Failed to delete game');
+      }
     }
   };
 
@@ -578,16 +640,16 @@ export default function AdminPage() {
             <p className="text-slate-400 text-xl">Manage your platform with full control</p>
             
             {/* Info Banner */}
-            <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-start gap-3">
+            <div className="mt-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-blue-400">
-                  <strong>Data Persistence:</strong> Games and Products are saved to browser localStorage. 
-                  Your uploads will persist even after page refresh. Clear browser data to reset.
+                <p className="text-sm text-emerald-400">
+                  <strong>Database Connected:</strong> All data is stored in SQLite database (dev.db). 
+                  Use Prisma Studio or HeidiSQL to view/edit data directly. Changes persist across sessions.
                 </p>
               </div>
             </div>

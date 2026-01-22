@@ -57,6 +57,105 @@ async function main() {
   });
 
   console.log(`✅ Created 2 test users`);
+  
+  // Create games
+  const fortnite = await prisma.game.upsert({
+    where: { slug: 'fortnite' },
+    update: {},
+    create: {
+      name: 'Fortnite',
+      slug: 'fortnite',
+      icon: '/games/fortnite.png',
+      platform: 'Desktop',
+      productCount: 0,
+    },
+  });
+
+  const valorant = await prisma.game.upsert({
+    where: { slug: 'valorant' },
+    update: {},
+    create: {
+      name: 'Valorant',
+      slug: 'valorant',
+      icon: '/games/valorant.png',
+      platform: 'Desktop',
+      productCount: 0,
+    },
+  });
+
+  const apex = await prisma.game.upsert({
+    where: { slug: 'apex-legends' },
+    update: {},
+    create: {
+      name: 'Apex Legends',
+      slug: 'apex-legends',
+      icon: '/games/apex.png',
+      platform: 'Desktop',
+      productCount: 0,
+    },
+  });
+
+  console.log(`✅ Created 3 games`);
+
+  // Create products
+  const fortniteEsp = await prisma.product.create({
+    data: {
+      name: 'Fortnite ESP',
+      slug: 'fortnite-esp',
+      description: 'Advanced ESP for Fortnite with player highlighting',
+      image: '/products/fortnite-esp.png',
+      price: 29.99,
+      status: 'AVAILABLE',
+      badge: 'BEST_SELLER',
+      gameId: fortnite.id,
+    },
+  });
+
+  const valorantAimbot = await prisma.product.create({
+    data: {
+      name: 'Valorant Aimbot',
+      slug: 'valorant-aimbot',
+      description: 'Professional aimbot for Valorant',
+      image: '/products/valorant-aimbot.png',
+      price: 39.99,
+      status: 'AVAILABLE',
+      badge: 'POPULAR',
+      gameId: valorant.id,
+    },
+  });
+
+  const apexRadar = await prisma.product.create({
+    data: {
+      name: 'Apex Legends Radar',
+      slug: 'apex-legends-radar',
+      description: 'Enemy radar for Apex Legends',
+      image: '/products/apex-radar.png',
+      price: 34.99,
+      status: 'AVAILABLE',
+      badge: 'NEW',
+      gameId: apex.id,
+    },
+  });
+
+  // Update game product counts
+  await prisma.game.update({
+    where: { id: fortnite.id },
+    data: { productCount: 1 },
+  });
+
+  await prisma.game.update({
+    where: { id: valorant.id },
+    data: { productCount: 1 },
+  });
+
+  await prisma.game.update({
+    where: { id: apex.id },
+    data: { productCount: 1 },
+  });
+
+  console.log(`✅ Created 3 products`);
+  console.log('');
+  console.log('🎉 Database seeded successfully!');
 }
 
 main()
