@@ -341,7 +341,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-      </nav>      </nav>
+      </nav>
 
       {/* Main Content */}
       <main className="pt-32 pb-24 relative">
