@@ -3,16 +3,22 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Mail, User, Lock, ArrowRight, Check, Shield, Zap, Menu, X, Store, LogIn } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [signupError, setSignupError] = useState('');
 
   const [loginForm, setLoginForm] = useState({
     emailOrUsername: '',
@@ -101,6 +107,75 @@ export default function LoginPage() {
     if (strength <= 2) return { label: 'Weak', color: 'text-red-500', width: '33%' };
     if (strength <= 3) return { label: 'Medium', color: 'text-amber-500', width: '66%' };
     return { label: 'Strong', color: 'text-emerald-500', width: '100%' };
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError('');
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailOrUsername: loginForm.emailOrUsername,
+          password: loginForm.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLoginError(data.error || 'Login failed');
+        return;
+      }
+
+      // Redirect based on role
+      if (data.user.role === 'ADMIN') {
+        router.push('/admin');
+      } else {
+        router.push('/store');
+      }
+    } catch (error) {
+      setLoginError('Network error. Please try again.');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSigningUp(true);
+    setSignupError('');
+
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: signupForm.username,
+          email: signupForm.email,
+          password: signupForm.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSignupError(data.error || 'Signup failed');
+        return;
+      }
+
+      // Redirect to store after successful signup
+      router.push('/store');
+    } catch (error) {
+      setSignupError('Network error. Please try again.');
+      console.error('Signup error:', error);
+    } finally {
+      setIsSigningUp(false);
+    }
   };
 
   return (
@@ -193,63 +268,84 @@ export default function LoginPage() {
 
               {/* Login Form */}
               <TabsContent value="login" className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-white">Email or Username</Label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <Input
-                      id="login-email"
-                      type="text"
-                      placeholder="Enter your email or username"
-                      value={loginForm.emailOrUsername}
-                      onChange={(e) => setLoginForm({ ...loginForm, emailOrUsername: e.target.value })}
-                      className="pl-12 bg-slate-700/30 border-slate-600 focus:border-emerald-500"
-                      required
-                    />
+                <form onSubmit={handleLogin} className="space-y-6">
+                  {loginError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+                      <p className="text-red-400 text-sm">{loginError}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email" className="text-white">Email or Username</Label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                      <Input
+                        id="login-email"
+                        type="text"
+                        placeholder="Enter your email or username"
+                        value={loginForm.emailOrUsername}
+                        onChange={(e) => setLoginForm({ ...loginForm, emailOrUsername: e.target.value })}
+                        className="pl-12 bg-slate-700/30 border-slate-600 focus:border-emerald-500"
+                        required
+                        disabled={isLoggingIn}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-white">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <Input
-                      id="login-password"
-                      type={showLoginPassword ? 'text' : 'password'}
-                      placeholder="Enter your password"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                      className="pl-12 pr-12 bg-slate-700/30 border-slate-600 focus:border-emerald-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-                    >
-                      {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password" className="text-white">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                      <Input
+                        id="login-password"
+                        type={showLoginPassword ? 'text' : 'password'}
+                        placeholder="Enter your password"
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                        className="pl-12 pr-12 bg-slate-700/30 border-slate-600 focus:border-emerald-500"
+                        required
+                        disabled={isLoggingIn}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-4 text-base shadow-lg shadow-emerald-500/25">
-                  Sign In
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-4 text-base shadow-lg shadow-emerald-500/25"
+                    disabled={isLoggingIn}
+                  >
+                    {isLoggingIn ? 'Signing in...' : 'Sign In'}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
 
-                <div className="flex items-center justify-between pt-2">
-                  <Link href="/terms" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">
-                    Forgot password?
-                  </Link>
-                  <Link href="#signup" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">
-                    Create account
-                  </Link>
-                </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <Link href="/terms" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">
+                      Forgot password?
+                    </Link>
+                    <Link href="#signup" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">
+                      Create account
+                    </Link>
+                  </div>
+                </form>
               </TabsContent>
 
               {/* Sign Up Form */}
               <TabsContent value="signup" className="space-y-6">
-                <div className="space-y-2">
+                <form onSubmit={handleSignup} className="space-y-6">
+                  {signupError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+                      <p className="text-red-400 text-sm">{signupError}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
                   <Label htmlFor="signup-username" className="text-white">Username</Label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -352,11 +448,12 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-4 text-base shadow-lg shadow-emerald-500/25"
-                  disabled={!isSignupValid()}
+                  disabled={!isSignupValid() || isSigningUp}
                 >
-                  Create Account
+                  {isSigningUp ? 'Creating account...' : 'Create Account'}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
+                </form>
               </TabsContent>
             </Tabs>
           </div>
