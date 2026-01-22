@@ -143,10 +143,15 @@ export default function StorePage() {
                       </div>
                     )}
 
-                    <div className="relative h-48 bg-slate-700/30 flex items-center justify-center">
-                      <div className="text-6xl">
-                        {gamesData.find((g) => g.slug === product.gameSlug)?.icon}
-                      </div>
+                    <div className="relative h-48 bg-slate-700/30 flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={gamesData.find((g) => g.slug === product.gameSlug)?.icon || 'https://via.placeholder.com/300x192?text=No+Image'}
+                        alt={gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=No+Image';
+                        }}
+                      />
                     </div>
 
                     <div className="p-6 space-y-4">
@@ -186,10 +191,15 @@ export default function StorePage() {
                       </div>
                     )}
 
-                    <div className="relative h-48 bg-slate-700/30 flex items-center justify-center">
-                      <div className="text-6xl">
-                        {gamesData.find((g) => g.slug === product.gameSlug)?.icon}
-                      </div>
+                    <div className="relative h-48 bg-slate-700/30 flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={gamesData.find((g) => g.slug === product.gameSlug)?.icon || 'https://via.placeholder.com/300x192?text=No+Image'}
+                        alt={gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=No+Image';
+                        }}
+                      />
                     </div>
 
                     <div className="p-6 space-y-4">
@@ -250,10 +260,15 @@ export default function StorePage() {
             {filteredGames.map((game) => (
               <Link key={game.id} href={`/store/${game.slug}`}>
                 <div className="group relative bg-slate-800/30 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden h-80 hover:border-emerald-500/40 hover:bg-slate-800/50 transition-all duration-500">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-8xl opacity-30 group-hover:opacity-40 transition-opacity">
-                      {game.icon}
-                    </div>
+                  <div className="absolute inset-0">
+                    <img 
+                      src={game.icon}
+                      alt={game.name}
+                      className="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x320?text=' + encodeURIComponent(game.name);
+                      }}
+                    />
                   </div>
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />

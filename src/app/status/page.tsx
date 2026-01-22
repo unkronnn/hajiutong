@@ -311,7 +311,16 @@ export default function StatusPage() {
                 {/* Game Header */}
                 <div className="flex items-start justify-between mb-6 pb-6 border-b border-slate-700/30">
                   <div className="flex items-center gap-4">
-                    <div className="text-5xl">{game.icon}</div>
+                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-600 bg-slate-800 flex items-center justify-center">
+                      <img 
+                        src={game.icon} 
+                        alt={game.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=' + encodeURIComponent(game.name.charAt(0));
+                        }}
+                      />
+                    </div>
                     <div>
                       <h3 className="text-2xl font-bold text-white">{game.name}</h3>
                       <p className="text-sm text-slate-400">{game.products.length} products available</p>
