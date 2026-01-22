@@ -140,7 +140,30 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
-  // In a real app, you would fetch this from the API
+  // Load data from localStorage on mount
+  useEffect(() => {
+    // Load saved data from localStorage
+    const savedGames = localStorage.getItem('adminGames');
+    const savedProducts = localStorage.getItem('adminProducts');
+    
+    if (savedGames) {
+      try {
+        setGames(JSON.parse(savedGames));
+      } catch (e) {
+        console.error('Error loading games from localStorage:', e);
+      }
+    }
+    
+    if (savedProducts) {
+      try {
+        setProducts(JSON.parse(savedProducts));
+      } catch (e) {
+        console.error('Error loading products from localStorage:', e);
+      }
+    }
+  }, []);
+
+  // Initialize with dummy data only if localStorage is empty
   useEffect(() => {
     // Simulate API call
     setTimeout(() => {
@@ -149,7 +172,7 @@ export default function AdminPage() {
         totalAdmins: 5,
         verifiedEmails: 1245,
         recentSignups: 89,
-        totalProducts: 45,
+        totalProducts: products.length || 45,
         totalOrders: 3420,
         totalRevenue: 125840,
         avgRating: 4.7,
@@ -203,21 +226,31 @@ export default function AdminPage() {
         },
       ]);
 
-      setGames([
-        { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '/games/fortnite.png', productCount: 12 },
-        { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '/games/valorant.png', productCount: 8 },
-        { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '/games/pubg.png', productCount: 10 },
-        { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '/games/apex.png', productCount: 7 },
-        { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '/games/warzone.png', productCount: 8 },
-      ]);
+      // Only set games if localStorage is empty
+      if (!localStorage.getItem('adminGames')) {
+        const defaultGames = [
+          { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '/games/fortnite.png', productCount: 12 },
+          { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '/games/valorant.png', productCount: 8 },
+          { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '/games/pubg.png', productCount: 10 },
+          { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '/games/apex.png', productCount: 7 },
+          { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '/games/warzone.png', productCount: 8 },
+        ];
+        setGames(defaultGames);
+        localStorage.setItem('adminGames', JSON.stringify(defaultGames));
+      }
 
-      setProducts([
-        { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245, image: '/products/fortnite-esp.png' },
-        { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189, image: '/products/valorant-aimbot.png' },
-        { id: '3', name: 'PUBG Recoil', game: 'PUBG', price: 24.99, status: 'OUT_OF_STOCK', sales: 156, image: '/products/pubg-recoil.png' },
-        { id: '4', name: 'Apex Legends Radar', game: 'Apex', price: 34.99, status: 'AVAILABLE', sales: 203, image: '/products/apex-radar.png' },
-        { id: '5', name: 'Warzone ESP', game: 'Warzone', price: 44.99, status: 'COMING_SOON', sales: 0, image: '/products/warzone-esp.png' },
-      ]);
+      // Only set products if localStorage is empty
+      if (!localStorage.getItem('adminProducts')) {
+        const defaultProducts = [
+          { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245, image: '/products/fortnite-esp.png' },
+          { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189, image: '/products/valorant-aimbot.png' },
+          { id: '3', name: 'PUBG Recoil', game: 'PUBG', price: 24.99, status: 'OUT_OF_STOCK', sales: 156, image: '/products/pubg-recoil.png' },
+          { id: '4', name: 'Apex Legends Radar', game: 'Apex', price: 34.99, status: 'AVAILABLE', sales: 203, image: '/products/apex-radar.png' },
+          { id: '5', name: 'Warzone ESP', game: 'Warzone', price: 44.99, status: 'COMING_SOON', sales: 0, image: '/products/warzone-esp.png' },
+        ];
+        setProducts(defaultProducts);
+        localStorage.setItem('adminProducts', JSON.stringify(defaultProducts));
+      }
 
       setOrders([
         { id: '1', orderNumber: 'ORD-2024-001', user: 'john@example.com', amount: 29.99, status: 'COMPLETED', date: '2024-01-22' },
@@ -326,17 +359,22 @@ export default function AdminPage() {
         image: productImagePreview || selectedProduct.image || '',
       };
       
+      let updatedProducts;
       if (isEditingProduct) {
-        setProducts(products.map(p => p.id === productToSave.id ? productToSave : p));
+        updatedProducts = products.map(p => p.id === productToSave.id ? productToSave : p);
       } else {
         const newProduct = {
           ...productToSave,
           id: Date.now().toString(),
           sales: 0,
         };
-        setProducts([...products, newProduct]);
+        updatedProducts = [...products, newProduct];
         setStats(prev => ({ ...prev, totalProducts: prev.totalProducts + 1 }));
       }
+      
+      setProducts(updatedProducts);
+      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
+      
       setProductDialogOpen(false);
       setSelectedProduct(null);
       setProductImageFile(null);
@@ -346,7 +384,9 @@ export default function AdminPage() {
 
   const handleDeleteProduct = (productId: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter((p) => p.id !== productId));
+      const updatedProducts = products.filter((p) => p.id !== productId);
+      setProducts(updatedProducts);
+      localStorage.setItem('adminProducts', JSON.stringify(updatedProducts));
       setStats(prev => ({ ...prev, totalProducts: prev.totalProducts - 1 }));
     }
   };
@@ -394,8 +434,9 @@ export default function AdminPage() {
         icon: gameIconPreview || selectedGame.icon || '',
       };
       
+      let updatedGames;
       if (isEditingGame) {
-        setGames(games.map(g => g.id === gameToSave.id ? gameToSave : g));
+        updatedGames = games.map(g => g.id === gameToSave.id ? gameToSave : g);
       } else {
         const newGame = {
           ...gameToSave,
@@ -403,8 +444,12 @@ export default function AdminPage() {
           slug: gameToSave.name.toLowerCase().replace(/\s+/g, '-'),
           productCount: 0,
         };
-        setGames([...games, newGame]);
+        updatedGames = [...games, newGame];
       }
+      
+      setGames(updatedGames);
+      localStorage.setItem('adminGames', JSON.stringify(updatedGames));
+      
       setGameDialogOpen(false);
       setSelectedGame(null);
       setGameIconFile(null);
@@ -414,7 +459,9 @@ export default function AdminPage() {
 
   const handleDeleteGame = (gameId: string) => {
     if (window.confirm('Are you sure you want to delete this game? All related products will be affected.')) {
-      setGames(games.filter((g) => g.id !== gameId));
+      const updatedGames = games.filter((g) => g.id !== gameId);
+      setGames(updatedGames);
+      localStorage.setItem('adminGames', JSON.stringify(updatedGames));
     }
   };
 
@@ -529,6 +576,21 @@ export default function AdminPage() {
               Admin <span className="text-emerald-400">Dashboard</span>
             </h1>
             <p className="text-slate-400 text-xl">Manage your platform with full control</p>
+            
+            {/* Info Banner */}
+            <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-blue-400">
+                  <strong>Data Persistence:</strong> Games and Products are saved to browser localStorage. 
+                  Your uploads will persist even after page refresh. Clear browser data to reset.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Statistics Grid */}
