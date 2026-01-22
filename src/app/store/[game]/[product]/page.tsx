@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Check, X, Clock, Shield, Cpu, Download, HelpCircle, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     game: string;
     product: string;
-  };
+  }>;
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const game = gamesData.find((g) => g.slug === params.game);
-  const products = productsByGame[params.game] || [];
-  const product = products.find((p) => p.id === params.product);
+  const { game: gameSlug, product: productId } = use(params);
+  const game = gamesData.find((g) => g.slug === gameSlug);
+  const products = productsByGame[gameSlug] || [];
+  const product = products.find((p) => p.id === productId);
 
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Check, X, Clock, Star, Flame, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,14 +14,15 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 interface GamePageProps {
-  params: {
+  params: Promise<{
     game: string;
-  };
+  }>;
 }
 
 export default function GamePage({ params }: GamePageProps) {
-  const game = gamesData.find((g) => g.slug === params.game);
-  const products = productsByGame[params.game] || [];
+  const { game: gameSlug } = use(params);
+  const game = gamesData.find((g) => g.slug === gameSlug);
+  const products = productsByGame[gameSlug] || [];
 
   if (!game) {
     return (
