@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function LoginPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loginForm, setLoginForm] = useState({
     emailOrUsername: '',
@@ -165,8 +166,15 @@ export default function LoginPage() {
                         className="pl-12 pr-12"
                         required
                       />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
+                  </div>
 
                   <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-4 text-base">
                     Sign In
@@ -236,6 +244,13 @@ export default function LoginPage() {
                         className="pl-12 pr-12"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showSignupPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                     {signupForm.password && (
                       <>
@@ -265,6 +280,13 @@ export default function LoginPage() {
                         className="pl-12 pr-12"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                     {signupErrors.confirmPassword && (
                       <p className="text-xs text-red-500 mt-1">{signupErrors.confirmPassword}</p>
