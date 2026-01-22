@@ -47,13 +47,25 @@ interface User {
   createdAt: string;
 }
 
+interface Game {
+  id: string;
+  name: string;
+  slug: string;
+  platform: string;
+  icon: string;
+  productCount: number;
+}
+
 interface Product {
   id: string;
   name: string;
   game: string;
+  gameId?: string;
   price: number;
   status: string;
   sales: number;
+  description?: string;
+  badge?: string;
 }
 
 interface Order {
@@ -90,8 +102,20 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // User Management States
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  // Product Management States
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
+  
+  // Game Management States
+  const [gameDialogOpen, setGameDialogOpen] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isEditingGame, setIsEditingGame] = useState(false);
   
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -105,6 +129,7 @@ export default function AdminPage() {
   });
   const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
@@ -171,6 +196,14 @@ export default function AdminPage() {
         },
       ]);
 
+      setGames([
+        { id: '1', name: 'Fortnite', slug: 'fortnite', platform: 'Desktop', icon: '🎮', productCount: 12 },
+        { id: '2', name: 'Valorant', slug: 'valorant', platform: 'Desktop', icon: '🔫', productCount: 8 },
+        { id: '3', name: 'PUBG', slug: 'pubg', platform: 'Desktop', icon: '🎯', productCount: 10 },
+        { id: '4', name: 'Apex Legends', slug: 'apex', platform: 'Desktop', icon: '⚔️', productCount: 7 },
+        { id: '5', name: 'Warzone', slug: 'warzone', platform: 'Desktop', icon: '💣', productCount: 8 },
+      ]);
+
       setProducts([
         { id: '1', name: 'Fortnite ESP', game: 'Fortnite', price: 29.99, status: 'AVAILABLE', sales: 245 },
         { id: '2', name: 'Valorant Aimbot', game: 'Valorant', price: 39.99, status: 'AVAILABLE', sales: 189 },
@@ -228,20 +261,106 @@ export default function AdminPage() {
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
-    setEditDialogOpen(true);
+    setEditUserDialogOpen(true);
   };
 
   const handleSaveUser = () => {
     if (selectedUser) {
       setUsers(users.map(u => u.id === selectedUser.id ? selectedUser : u));
-      setEditDialogOpen(false);
+      setEditUserDialogOpen(false);
       setSelectedUser(null);
+    }
+  };
+
+  // Product Management Handlers
+  const handleAddProduct = () => {
+    setSelectedProduct({
+      id: '',
+      name: '',
+      game: '',
+      gameId: '',
+      price: 0,
+      status: 'AVAILABLE',
+      sales: 0,
+      description: '',
+      badge: '',
+    });
+    setIsEditingProduct(false);
+    setProductDialogOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsEditingProduct(true);
+    setProductDialogOpen(true);
+  };
+
+  const handleSaveProduct = () => {
+    if (selectedProduct) {
+      if (isEditingProduct) {
+        setProducts(products.map(p => p.id === selectedProduct.id ? selectedProduct : p));
+      } else {
+        const newProduct = {
+          ...selectedProduct,
+          id: Date.now().toString(),
+          sales: 0,
+        };
+        setProducts([...products, newProduct]);
+        setStats(prev => ({ ...prev, totalProducts: prev.totalProducts + 1 }));
+      }
+      setProductDialogOpen(false);
+      setSelectedProduct(null);
     }
   };
 
   const handleDeleteProduct = (productId: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       setProducts(products.filter((p) => p.id !== productId));
+      setStats(prev => ({ ...prev, totalProducts: prev.totalProducts - 1 }));
+    }
+  };
+
+  // Game Management Handlers
+  const handleAddGame = () => {
+    setSelectedGame({
+      id: '',
+      name: '',
+      slug: '',
+      platform: 'Desktop',
+      icon: '🎮',
+      productCount: 0,
+    });
+    setIsEditingGame(false);
+    setGameDialogOpen(true);
+  };
+
+  const handleEditGame = (game: Game) => {
+    setSelectedGame(game);
+    setIsEditingGame(true);
+    setGameDialogOpen(true);
+  };
+
+  const handleSaveGame = () => {
+    if (selectedGame) {
+      if (isEditingGame) {
+        setGames(games.map(g => g.id === selectedGame.id ? selectedGame : g));
+      } else {
+        const newGame = {
+          ...selectedGame,
+          id: Date.now().toString(),
+          slug: selectedGame.name.toLowerCase().replace(/\s+/g, '-'),
+          productCount: 0,
+        };
+        setGames([...games, newGame]);
+      }
+      setGameDialogOpen(false);
+      setSelectedGame(null);
+    }
+  };
+
+  const handleDeleteGame = (gameId: string) => {
+    if (window.confirm('Are you sure you want to delete this game? All related products will be affected.')) {
+      setGames(games.filter((g) => g.id !== gameId));
     }
   };
 
@@ -310,9 +429,9 @@ export default function AdminPage() {
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6">
+              <Button onClick={handleAddGame} variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800/50 px-6">
                 <Plus className="h-4 w-4 mr-2" />
-                New User
+                Add Game
               </Button>
             </div>
 
@@ -424,7 +543,7 @@ export default function AdminPage() {
           {/* Tabs Management */}
           <div className="relative bg-slate-800/30 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-8 bg-slate-700/30 p-1 rounded-2xl">
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-8 bg-slate-700/30 p-1 rounded-2xl">
                 <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                   <Activity className="h-4 w-4 mr-2" />
                   Overview
@@ -432,6 +551,10 @@ export default function AdminPage() {
                 <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                   <Users className="h-4 w-4 mr-2" />
                   Users
+                </TabsTrigger>
+                <TabsTrigger value="games" className="rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+                  <Activity className="h-4 w-4 mr-2" />
+                  Games
                 </TabsTrigger>
                 <TabsTrigger value="products" className="rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                   <Package className="h-4 w-4 mr-2" />
@@ -633,6 +756,72 @@ export default function AdminPage() {
                 </div>
               </TabsContent>
 
+              {/* Games Tab */}
+              <TabsContent value="games" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white">Games Management</h2>
+                  <Button onClick={handleAddGame} className="bg-emerald-500 hover:bg-emerald-600">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Game
+                  </Button>
+                </div>
+
+                <div className="bg-slate-700/30 rounded-2xl border border-slate-600/30 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-slate-600/30 hover:bg-transparent">
+                          <TableHead className="text-white font-semibold">Game</TableHead>
+                          <TableHead className="text-white font-semibold">Slug</TableHead>
+                          <TableHead className="text-white font-semibold">Platform</TableHead>
+                          <TableHead className="text-white font-semibold">Products</TableHead>
+                          <TableHead className="text-white font-semibold text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {games.map((game) => (
+                          <TableRow key={game.id} className="border-slate-600/30 hover:bg-slate-700/30">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{game.icon}</span>
+                                <span className="font-medium text-white">{game.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-slate-400 font-mono">{game.slug}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                {game.platform}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-white">{game.productCount} products</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+                                  onClick={() => handleEditGame(game)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                                  onClick={() => handleDeleteGame(game.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </TabsContent>
+
               {/* Products Tab */}
               <TabsContent value="products" className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -648,7 +837,7 @@ export default function AdminPage() {
                         className="pl-10 w-64 bg-slate-700/30 border-slate-600"
                       />
                     </div>
-                    <Button className="bg-emerald-500 hover:bg-emerald-600">
+                    <Button onClick={handleAddProduct} className="bg-emerald-500 hover:bg-emerald-600">
                       <Plus className="h-4 w-4 mr-2" />
                       New Product
                     </Button>
@@ -693,6 +882,7 @@ export default function AdminPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+                                  onClick={() => handleEditProduct(product)}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -849,7 +1039,7 @@ export default function AdminPage() {
       </main>
 
       {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
@@ -895,9 +1085,201 @@ export default function AdminPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-700">
+            <Button variant="outline" onClick={() => setEditUserDialogOpen(false)} className="border-slate-700">
               Cancel
             </Button>
+            <Button onClick={handleSaveUser} className="bg-emerald-500 hover:bg-emerald-600">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Dialog (Add/Edit) */}
+      <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{isEditingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {isEditingProduct ? 'Update product information' : 'Fill in the details to add a new product'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProduct && (
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="product-name">Product Name *</Label>
+                  <Input
+                    id="product-name"
+                    value={selectedProduct.name}
+                    onChange={(e) => setSelectedProduct({ ...selectedProduct, name: e.target.value })}
+                    className="bg-slate-800 border-slate-700"
+                    placeholder="e.g., Fortnite ESP"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-game">Game *</Label>
+                  <Select
+                    value={selectedProduct.game}
+                    onValueChange={(value) => setSelectedProduct({ ...selectedProduct, game: value })}
+                  >
+                    <SelectTrigger className="bg-slate-800 border-slate-700">
+                      <SelectValue placeholder="Select game" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700">
+                      {games.map((game) => (
+                        <SelectItem key={game.id} value={game.name}>
+                          {game.icon} {game.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="product-price">Price ($) *</Label>
+                  <Input
+                    id="product-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={selectedProduct.price}
+                    onChange={(e) => setSelectedProduct({ ...selectedProduct, price: parseFloat(e.target.value) || 0 })}
+                    className="bg-slate-800 border-slate-700"
+                    placeholder="29.99"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-status">Status *</Label>
+                  <Select
+                    value={selectedProduct.status}
+                    onValueChange={(value) => setSelectedProduct({ ...selectedProduct, status: value })}
+                  >
+                    <SelectTrigger className="bg-slate-800 border-slate-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700">
+                      <SelectItem value="AVAILABLE">Available</SelectItem>
+                      <SelectItem value="OUT_OF_STOCK">Out of Stock</SelectItem>
+                      <SelectItem value="COMING_SOON">Coming Soon</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="product-badge">Badge (Optional)</Label>
+                <Select
+                  value={selectedProduct.badge || ''}
+                  onValueChange={(value) => setSelectedProduct({ ...selectedProduct, badge: value })}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700">
+                    <SelectValue placeholder="No badge" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="">No Badge</SelectItem>
+                    <SelectItem value="BEST_SELLER">Best Seller</SelectItem>
+                    <SelectItem value="NEW">New</SelectItem>
+                    <SelectItem value="POPULAR">Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="product-description">Description (Optional)</Label>
+                <Input
+                  id="product-description"
+                  value={selectedProduct.description || ''}
+                  onChange={(e) => setSelectedProduct({ ...selectedProduct, description: e.target.value })}
+                  className="bg-slate-800 border-slate-700"
+                  placeholder="Product description"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductDialogOpen(false)} className="border-slate-700">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProduct} className="bg-emerald-500 hover:bg-emerald-600">
+              {isEditingProduct ? 'Update Product' : 'Add Product'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Game Dialog (Add/Edit) */}
+      <Dialog open={gameDialogOpen} onOpenChange={setGameDialogOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>{isEditingGame ? 'Edit Game' : 'Add New Game'}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {isEditingGame ? 'Update game information' : 'Fill in the details to add a new game'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedGame && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="game-name">Game Name *</Label>
+                <Input
+                  id="game-name"
+                  value={selectedGame.name}
+                  onChange={(e) => setSelectedGame({ ...selectedGame, name: e.target.value })}
+                  className="bg-slate-800 border-slate-700"
+                  placeholder="e.g., Fortnite"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="game-icon">Icon (Emoji) *</Label>
+                <Input
+                  id="game-icon"
+                  value={selectedGame.icon}
+                  onChange={(e) => setSelectedGame({ ...selectedGame, icon: e.target.value })}
+                  className="bg-slate-800 border-slate-700"
+                  placeholder="🎮"
+                  maxLength={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="game-platform">Platform *</Label>
+                <Select
+                  value={selectedGame.platform}
+                  onValueChange={(value) => setSelectedGame({ ...selectedGame, platform: value })}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectItem value="Desktop">Desktop</SelectItem>
+                    <SelectItem value="Android">Android</SelectItem>
+                    <SelectItem value="iOS">iOS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!isEditingGame && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 mt-4">
+                  <p className="text-sm text-blue-400">
+                    💡 The slug will be auto-generated from the game name
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGameDialogOpen(false)} className="border-slate-700">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveGame} className="bg-emerald-500 hover:bg-emerald-600">
+              {isEditingGame ? 'Update Game' : 'Add Game'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
             <Button onClick={handleSaveUser} className="bg-emerald-500 hover:bg-emerald-600">
               Save Changes
             </Button>
