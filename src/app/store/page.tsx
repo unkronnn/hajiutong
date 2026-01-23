@@ -1,14 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Monitor, Smartphone, Tablet, Star, Menu, X, Store as StoreIcon, Crown, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { gamesData, popularProducts } from '@/lib/data';
+
+interface Game {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  platform: 'Desktop' | 'Android' | 'iOS';
+  productCount: number;
+}
 
 export default function StorePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'Desktop' | 'Android' | 'iOS'>('Desktop');
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const platforms: Array<{ name: 'Desktop' | 'Android' | 'iOS'; icon: any }> = [
     { name: 'Desktop', icon: Monitor },
@@ -16,7 +26,24 @@ export default function StorePage() {
     { name: 'iOS', icon: Tablet },
   ];
 
-  const filteredGames = gamesData.filter((game) => game.platform === selectedPlatform);
+  // Fetch games from database
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const response = await fetch('/api/games');
+        const data = await response.json();
+        setGames(data.games || []);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGames();
+  }, []);
+
+  const filteredGames = games.filter((game) => game.platform === selectedPlatform);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -128,28 +155,22 @@ export default function StorePage() {
             {/* Gradient Overlays */}
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-slate-900 to-transparent z-10 pointer-events-none" />
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-slate-900 to-transparent z-10 pointer-events-none" />
-            
-            {/* Marquee Container */}
+
+            {/* Marquee Container - Show games instead of products */}
             <div className="flex overflow-hidden">
               <div className="flex animate-marquee">
-                {popularProducts.map((product) => (
+                {games.slice(0, 8).map((game) => (
                   <div
-                    key={`first-${product.id}`}
+                    key={`first-${game.id}`}
                     className="group relative bg-slate-800/30 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden hover:border-emerald-500/40 hover:bg-slate-800/50 transition-all duration-500 flex-shrink-0 w-80 mx-3"
                   >
-                    {product.badge === 'best-seller' && (
-                      <div className="absolute top-4 left-4 z-10 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        Best Seller
-                      </div>
-                    )}
-
                     <div className="relative h-48 bg-slate-700/30 flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={gamesData.find((g) => g.slug === product.gameSlug)?.icon || 'https://via.placeholder.com/300x192?text=No+Image'}
-                        alt={gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                      <img
+                        src={game.icon}
+                        alt={game.name}
                         className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=No+Image';
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=' + encodeURIComponent(game.name);
                         }}
                       />
                     </div>
@@ -157,47 +178,38 @@ export default function StorePage() {
                     <div className="p-6 space-y-4">
                       <div>
                         <h3 className="text-xl font-bold text-white mb-1">
-                          {product.name}
+                          {game.name}
                         </h3>
                         <p className="text-sm text-slate-400">
-                          {gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                          {game.platform} • {game.productCount} products
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/30">
-                        <span className="text-2xl font-bold text-emerald-400">
-                          ${product.price}
-                        </span>
-                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6">
-                          Buy Now
+                      <Link href={`/store/${game.slug}`}>
+                        <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6">
+                          View Products
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
-                      </div>
+                      </Link>
                     </div>
                   </div>
                 ))}
               </div>
-              
+
               {/* Duplicate for seamless loop */}
               <div className="flex animate-marquee" aria-hidden="true">
-                {popularProducts.map((product) => (
+                {games.slice(0, 8).map((game) => (
                   <div
-                    key={`second-${product.id}`}
+                    key={`second-${game.id}`}
                     className="group relative bg-slate-800/30 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden hover:border-emerald-500/40 hover:bg-slate-800/50 transition-all duration-500 flex-shrink-0 w-80 mx-3"
                   >
-                    {product.badge === 'best-seller' && (
-                      <div className="absolute top-4 left-4 z-10 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        Best Seller
-                      </div>
-                    )}
-
                     <div className="relative h-48 bg-slate-700/30 flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={gamesData.find((g) => g.slug === product.gameSlug)?.icon || 'https://via.placeholder.com/300x192?text=No+Image'}
-                        alt={gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                      <img
+                        src={game.icon}
+                        alt={game.name}
                         className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=No+Image';
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x192?text=' + encodeURIComponent(game.name);
                         }}
                       />
                     </div>
@@ -205,22 +217,19 @@ export default function StorePage() {
                     <div className="p-6 space-y-4">
                       <div>
                         <h3 className="text-xl font-bold text-white mb-1">
-                          {product.name}
+                          {game.name}
                         </h3>
                         <p className="text-sm text-slate-400">
-                          {gamesData.find((g) => g.slug === product.gameSlug)?.name}
+                          {game.platform} • {game.productCount} products
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/30">
-                        <span className="text-2xl font-bold text-emerald-400">
-                          ${product.price}
-                        </span>
-                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6">
-                          Buy Now
+                      <Link href={`/store/${game.slug}`}>
+                        <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6">
+                          View Products
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
-                      </div>
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -256,8 +265,14 @@ export default function StorePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGames.map((game) => (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent"></div>
+              <p className="text-slate-400 text-lg mt-4">Loading games...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredGames.map((game) => (
               <Link key={game.id} href={`/store/${game.slug}`}>
                 <div className="group relative bg-slate-800/30 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden h-80 hover:border-emerald-500/40 hover:bg-slate-800/50 transition-all duration-500">
                   <div className="absolute inset-0">
@@ -283,10 +298,11 @@ export default function StorePage() {
                   </div>
                 </div>
               </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {filteredGames.length === 0 && (
+          {!loading && filteredGames.length === 0 && (
             <div className="text-center py-16">
               <p className="text-slate-400 text-lg">
                 No games available for {selectedPlatform} yet.
