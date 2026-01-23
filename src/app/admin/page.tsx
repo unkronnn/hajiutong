@@ -1401,14 +1401,14 @@ export default function AdminPage() {
               <div className="space-y-2">
                 <Label htmlFor="product-badge">Badge (Optional)</Label>
                 <Select
-                  value={selectedProduct.badge || ''}
-                  onValueChange={(value) => setSelectedProduct({ ...selectedProduct, badge: value })}
+                  value={selectedProduct.badge || 'none'}
+                  onValueChange={(value) => setSelectedProduct({ ...selectedProduct, badge: value === 'none' ? '' : value })}
                 >
                   <SelectTrigger className="bg-slate-800 border-slate-700">
                     <SelectValue placeholder="No badge" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-slate-700">
-                    <SelectItem value="">No Badge</SelectItem>
+                    <SelectItem value="none">No Badge</SelectItem>
                     <SelectItem value="BEST_SELLER">Best Seller</SelectItem>
                     <SelectItem value="NEW">New</SelectItem>
                     <SelectItem value="POPULAR">Popular</SelectItem>
