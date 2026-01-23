@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -114,35 +116,23 @@ export default function LoginPage() {
     setIsLoggingIn(true);
     setLoginError('');
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          emailOrUsername: loginForm.emailOrUsername,
-          password: loginForm.password,
-        }),
-      });
+    const result = await login(loginForm.emailOrUsername, loginForm.password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setLoginError(data.error || 'Login failed');
-        return;
-      }
-
-      // Redirect based on role
-      if (data.user.role === 'ADMIN') {
-        router.push('/admin');
-      } else {
-        router.push('/store');
-      }
-    } catch (error) {
-      setLoginError('Network error. Please try again.');
-      console.error('Login error:', error);
-    } finally {
+    if (!result.success) {
+      setLoginError(result.error || 'Login failed');
       setIsLoggingIn(false);
+      return;
     }
+
+    // Redirect based on role - the user state is already set by the auth context
+    const { user } = await fetch('/api/auth/session').then(res => res.json());
+    if (user?.role === 'ADMIN') {
+      router.push('/admin');
+    } else {
+      router.push('/store');
+    }
+
+    setIsLoggingIn(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
